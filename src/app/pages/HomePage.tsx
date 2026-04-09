@@ -459,7 +459,7 @@ export function HomePage() {
             </div>
             <p className="text-sm text-purple-100 flex items-center justify-center gap-2">
               <Shield className="w-4 h-4" />
-              100% free. No signup required. Your data stays on your device.
+              100% free. No signup required. Processed locally on your machine.
             </p>
           </motion.div>
         </div>
