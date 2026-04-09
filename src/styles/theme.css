@@ -2,6 +2,8 @@
 
 :root {
   --font-size: 16px;
+  --font-sans: "Space Grotesk", "Segoe UI", sans-serif;
+  --font-mono: "JetBrains Mono", "Courier New", monospace;
   --background: #ffffff;
   --foreground: oklch(0.145 0 0);
   --card: #ffffff;
@@ -126,6 +128,13 @@
 
   body {
     @apply bg-background text-foreground;
+    font-family: var(--font-sans);
+  }
+
+  code,
+  pre,
+  .font-mono {
+    font-family: var(--font-mono);
   }
 
   /**

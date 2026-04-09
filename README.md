@@ -5,7 +5,16 @@
 
   ## Running the code
 
-  Run `npm i` to install the dependencies.
+  ### Backend (FastAPI)
+  1. `cd backend`
+  2. `python -m venv .venv`
+  3. `./.venv/Scripts/activate` (Windows PowerShell)
+  4. `pip install -r requirements.txt`
+  5. `uvicorn app.main:app --reload`
 
-  Run `npm run dev` to start the development server.
+  The API runs on `http://localhost:8000` and accepts `POST /analyze` with a file upload.
+
+  ### Frontend (React)
+  1. `npm i`
+  2. `npm run dev`
   

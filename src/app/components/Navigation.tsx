@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router';
 import { motion } from 'motion/react';
 import { Wallet, Flame } from 'lucide-react';
@@ -9,6 +9,37 @@ export function Navigation() {
   const [activeSection, setActiveSection] = useState('home');
   const navigate = useNavigate();
   const location = useLocation();
+
+  useEffect(() => {
+    if (location.pathname !== '/') {
+      return;
+    }
+
+    const sectionIds = ['home', 'features', 'how-it-works', 'testimonials'];
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting && entry.target instanceof HTMLElement) {
+            setActiveSection(entry.target.id);
+          }
+        });
+      },
+      {
+        root: null,
+        rootMargin: '-35% 0px -55% 0px',
+        threshold: [0, 0.25, 0.5, 0.75, 1],
+      }
+    );
+
+    sectionIds.forEach((id) => {
+      const element = document.getElementById(id);
+      if (element) {
+        observer.observe(element);
+      }
+    });
+
+    return () => observer.disconnect();
+  }, [location.pathname]);
 
   const scrollToSection = (id: string) => {
     setActiveSection(id);

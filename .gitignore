@@ -1,6 +1,11 @@
 node_modules/
 dist/
 .DS_Store
+.venv/
+backend/.venv/
+backend/.venv_roaster/
+__pycache__/
+*.pyc
 .env
 .env.local
 .env.development.local
