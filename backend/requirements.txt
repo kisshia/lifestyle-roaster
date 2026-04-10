@@ -5,3 +5,9 @@ scikit-learn
 sentence-transformers
 python-multipart
 numpy
+google-genai
+python-dotenv
+pdfplumber
+pytesseract
+transformers
+torch

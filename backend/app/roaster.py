@@ -7,6 +7,7 @@ from typing import Dict, List, Tuple
 
 import numpy as np
 from sentence_transformers import SentenceTransformer
+from transformers import pipeline
 
 
 NOISE_PATTERNS = [
@@ -53,6 +54,10 @@ SURVIVAL_HINTS = [
     "insurance",
     "tuition",
     "school",
+    "meralco",
+    "maynilad",
+    "pldt",
+    "globe",
 ]
 
 IMPULSE_HINTS = [
@@ -84,6 +89,7 @@ class LifestyleRoaster:
         self._model_name = "all-MiniLM-L6-v2"
         self._model_lock = threading.Lock()
         self.model: SentenceTransformer | None = None
+        self.zs_classifier = None
         self.category_seeds: Dict[str, List[str]] = {
             "Impulse-Buying": [
                 "food delivery",
@@ -121,12 +127,23 @@ class LifestyleRoaster:
             category_embeddings[category] = np.mean(embeddings, axis=0)
         return category_embeddings
 
+    def _init_models_background(self) -> None:
+        with self._model_lock:
+            if self.model is None:
+                self.model = SentenceTransformer(self._model_name)
+                self.category_embeddings = self._build_category_embeddings()
+            if self.zs_classifier is None:
+                self.zs_classifier = pipeline("zero-shot-classification", model="facebook/bart-large-mnli")
+
     def _ensure_model(self) -> None:
-        if self.model is None:
-            with self._model_lock:
-                if self.model is None:
-                    self.model = SentenceTransformer(self._model_name)
-                    self.category_embeddings = self._build_category_embeddings()
+        if self.model is None or self.zs_classifier is None:
+            # We explicitly invoke it synchronously if they call _ensure_model and it's missing,
+            # or we can rely on a singleton background thread. The user requested background initialization,
+            # so we check if thread is alive. Let's just start it if not initialized.
+            if not hasattr(self, '_init_thread') or not self._init_thread.is_alive():
+                self._init_thread = threading.Thread(target=self._init_models_background)
+                self._init_thread.daemon = True
+                self._init_thread.start()
 
     def clean_transaction(self, description: str) -> str:
         if not description:
@@ -150,6 +167,7 @@ class LifestyleRoaster:
         self._ensure_model()
         lowered = cleaned_description.lower()
 
+        # Layer 1: Heuristic Fast-Pass
         for hint in SUBSCRIPTION_HINTS:
             if hint in lowered:
                 return "Subscription-Blue", 1.0
@@ -160,33 +178,70 @@ class LifestyleRoaster:
             if hint in lowered:
                 return "Impulse-Buying", 0.85
 
-        if self.model is None:
-            return "Survival-Green", 0.0
-        description_embedding = self.model.encode([lowered], normalize_embeddings=False)[0]
-        scores = {
-            category: self._cosine_similarity(description_embedding, embedding)
-            for category, embedding in self.category_embeddings.items()
-        }
-        best_category = max(scores, key=scores.get)
-        return best_category, scores[best_category]
+        # Layer 2: Semantic Zero-Shot
+        if self.zs_classifier is not None and self.model is not None:
+            candidate_labels = ["Impulse-Buying", "Survival-Green", "Subscription-Blue"]
+            zs_result = self.zs_classifier(cleaned_description, candidate_labels=candidate_labels)
+            best_label = zs_result["labels"][0]
+            best_score = zs_result["scores"][0]
+
+            # Layer 3: Confidence Scoring & ST Validation
+            if best_score < 0.75:
+                return "Uncertain", best_score
+
+            desc_embedding = self.model.encode([lowered], normalize_embeddings=False)[0]
+            st_scores = {
+                category: self._cosine_similarity(desc_embedding, embedding)
+                for category, embedding in self.category_embeddings.items()
+            }
+            
+            # Prevent hallucination: ensure ST score for the elected category is reasonably high
+            if st_scores.get(best_label, 0) < 0.2:
+                return "Uncertain", best_score
+
+            return best_label, best_score
+
+        # Fallback if models are still downloading in the background
+        if self.model is not None:
+            description_embedding = self.model.encode([lowered], normalize_embeddings=False)[0]
+            scores = {
+                category: self._cosine_similarity(description_embedding, embedding)
+                for category, embedding in self.category_embeddings.items()
+            }
+            best_category = max(scores, key=scores.get)
+            return best_category, scores[best_category]
+            
+        return "Uncertain", 0.0
 
     def generate_roast(
         self,
         breakdown: List[Dict[str, float]],
         recurring_items: List[Dict[str, float]],
+        transactions: List[Dict[str, object]] = None,
     ) -> RoastFindings:
         totals = {item["name"]: item for item in breakdown}
         impulse = totals.get("Impulse-Buying", {"percentage": 0, "amount": 0})
         survival = totals.get("Survival-Green", {"percentage": 0, "amount": 0})
         subscription = totals.get("Subscription-Blue", {"percentage": 0, "amount": 0})
 
+        avg_impulse_conf = 0.0
+        if transactions:
+            impulse_txs = [tx for tx in transactions if tx.get("category") == "Impulse-Buying"]
+            if impulse_txs:
+                avg_impulse_conf = float(np.mean([tx.get("similarity", 0) for tx in impulse_txs]))
+
         diagnosis = (
             "Your spending profile is balanced, but there is room to tighten the bolts."
         )
         if impulse["percentage"] >= 45:
-            diagnosis = (
-                "Impulse-Buying dominates your spending. Convenience is winning, and your wallet is losing."
-            )
+            if avg_impulse_conf >= 0.85:
+                diagnosis = (
+                    "ABSOLUTE DISASTER. Impulse-Buying is cannibalizing your wealth. You are funding convenience with your future."
+                )
+            else:
+                diagnosis = (
+                    "Impulse-Buying dominates your spending. Convenience is winning, and your wallet is losing."
+                )
         elif subscription["percentage"] >= 25:
             diagnosis = (
                 "Subscription-Blue is bloated. Silent monthly charges are running the show."

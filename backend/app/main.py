@@ -2,6 +2,9 @@ from __future__ import annotations
 
 from fastapi import FastAPI, File, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
+from dotenv import load_dotenv
+
+load_dotenv()
 
 from .parsing import parse_transactions
 from .pipeline import analyze_transactions
@@ -29,7 +32,12 @@ async def analyze(file: UploadFile = File(...)) -> dict:
         raise HTTPException(status_code=400, detail="Missing file name.")
 
     content = await file.read()
-    transactions = parse_transactions(content, file.filename)
+    
+    try:
+        transactions = parse_transactions(content, file.filename, file.content_type)
+    except RuntimeError as e:
+        raise HTTPException(status_code=500, detail=str(e))
+        
     if not transactions:
         raise HTTPException(status_code=400, detail="No valid transactions found in file.")
 

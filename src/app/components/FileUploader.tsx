@@ -2,7 +2,6 @@ import { useState, useRef } from 'react';
 import { motion } from 'motion/react';
 import { Upload, FileText, X, FileSearch } from 'lucide-react';
 import { Button } from './ui/button';
-import { extractTextFromPDF } from '../utils/pdfParser';
 import { toast } from 'sonner';
 
 interface FileUploaderProps {
@@ -43,11 +42,12 @@ export function FileUploader({ onFileReady }: FileUploaderProps) {
   };
 
   const handleFile = async (file: File) => {
-    const isPDF = file.name.toLowerCase().endsWith('.pdf');
-    const isCSV = file.name.toLowerCase().endsWith('.csv');
+    const validExtensions = ['.pdf', '.csv', '.png', '.jpg', '.jpeg'];
+    const lowerName = file.name.toLowerCase();
+    const isValid = validExtensions.some((ext) => lowerName.endsWith(ext)) || file.type.startsWith('image/');
 
-    if (!isPDF && !isCSV) {
-      toast.error('Only PDF and CSV files are supported.');
+    if (!isValid) {
+      toast.error('Only PDF, CSV, and Image files are supported.');
       return;
     }
 
@@ -55,28 +55,8 @@ export function FileUploader({ onFileReady }: FileUploaderProps) {
     setIsProcessing(true);
 
     try {
-      if (isPDF) {
-        const reader = new FileReader();
-        reader.onload = async (e) => {
-          try {
-            const arrayBuffer = e.target?.result as ArrayBuffer;
-            const text = await extractTextFromPDF(arrayBuffer);
-            const textFile = new File([text], file.name.replace(/\.pdf$/i, '.txt'), {
-              type: 'text/plain',
-            });
-            onFileReady(textFile);
-          } catch (error) {
-            toast.error('Failed to parse PDF statement.');
-            setFileName(null);
-          } finally {
-            setIsProcessing(false);
-          }
-        };
-        reader.readAsArrayBuffer(file);
-      } else {
-        onFileReady(file);
-        setIsProcessing(false);
-      }
+      onFileReady(file);
+      setIsProcessing(false);
     } catch (error) {
       toast.error('Error loading file.');
       setIsProcessing(false);
@@ -114,7 +94,7 @@ export function FileUploader({ onFileReady }: FileUploaderProps) {
           <input
             ref={fileInputRef}
             type="file"
-            accept=".csv,.pdf"
+            accept=".csv,.pdf,image/png,image/jpeg,image/jpg"
             onChange={handleChange}
             className="hidden"
             id="file-upload"
@@ -139,7 +119,7 @@ export function FileUploader({ onFileReady }: FileUploaderProps) {
                   </label>
                 </p>
                 <p className="text-sm text-slate-400">
-                  PDF statements are auto-converted to text. CSV works instantly.
+                  PDFs, Images, and CSVs will be processed dynamically.
                 </p>
               </div>
               <Button

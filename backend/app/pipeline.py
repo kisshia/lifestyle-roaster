@@ -116,9 +116,7 @@ def analyze_transactions(
                 "color": CATEGORY_COLORS.get(name, "#6b7280"),
             }
         )
-
-    roast = roaster.generate_roast(breakdown, recurring_items)
-
+    roast = roaster.generate_roast(breakdown, recurring_items, processed)
     return {
         "total_spent": total_spent,
         "breakdown": breakdown,
