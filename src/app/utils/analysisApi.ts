@@ -38,6 +38,7 @@ export interface AnalysisResult {
   transactions: ProcessedTransaction[];
   recurring_items: RecurringItem[];
   roast: RoastFindings;
+  currency: string;
 }
 
 const DEFAULT_API_URL = "http://localhost:8000";

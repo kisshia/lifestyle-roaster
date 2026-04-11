@@ -34,11 +34,13 @@ async def analyze(file: UploadFile = File(...)) -> dict:
     content = await file.read()
     
     try:
-        transactions = parse_transactions(content, file.filename, file.content_type)
+        transactions, currency = parse_transactions(content, file.filename, file.content_type)
     except RuntimeError as e:
         raise HTTPException(status_code=500, detail=str(e))
         
     if not transactions:
         raise HTTPException(status_code=400, detail="No valid transactions found in file.")
 
-    return analyze_transactions(transactions, roaster)
+    result = analyze_transactions(transactions, roaster)
+    result["currency"] = currency
+    return result

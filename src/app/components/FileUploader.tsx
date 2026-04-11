@@ -78,13 +78,13 @@ export function FileUploader({ onFileReady }: FileUploaderProps) {
       transition={{ duration: 0.4 }}
       className="relative"
     >
-      <div className="absolute inset-0 bg-gradient-to-r from-cyan-400/20 via-slate-900/0 to-fuchsia-500/20 blur-2xl" />
-      <div className="relative rounded-3xl border border-cyan-400/30 bg-[#0b1220]/90 p-10 shadow-[0_0_60px_rgba(34,211,238,0.12)]">
+      <div className="absolute inset-0 bg-gradient-to-r from-purple-400/20 via-white/0 to-pink-500/20 blur-2xl" />
+      <div className="relative rounded-3xl border border-white/50 bg-white/60 backdrop-blur-xl p-10 shadow-[0_8px_30px_rgb(0,0,0,0.04)]">
         <div
-          className={`rounded-2xl border-2 border-dashed p-12 text-center transition-all duration-300 ${
+          className={`rounded-2xl border-2 border-dashed p-12 text-center transition-all duration-300 bg-white/40 ${
             dragActive
-              ? 'border-cyan-400 bg-cyan-400/10'
-              : 'border-slate-700 hover:border-cyan-400/60'
+              ? 'border-purple-400 bg-purple-50'
+              : 'border-purple-200 hover:border-purple-400/60'
           }`}
           onDragEnter={handleDrag}
           onDragLeave={handleDrag}
@@ -107,29 +107,29 @@ export function FileUploader({ onFileReady }: FileUploaderProps) {
                 animate={{ y: [0, -6, 0] }}
                 transition={{ duration: 2, repeat: Infinity }}
               >
-                <div className="rounded-2xl border border-cyan-400/50 bg-cyan-400/10 p-6">
-                  <Upload className="h-10 w-10 text-cyan-200" />
+                <div className="rounded-2xl border border-purple-200 bg-purple-50 p-6 shadow-sm">
+                  <Upload className="h-10 w-10 text-purple-600" />
                 </div>
               </motion.div>
               <div className="space-y-2">
-                <p className="text-xl text-slate-200">
+                <p className="text-xl text-gray-800 font-medium">
                   Drop your transaction file or{' '}
-                  <label htmlFor="file-upload" className="text-cyan-300 hover:text-cyan-200 cursor-pointer underline">
+                  <label htmlFor="file-upload" className="text-purple-600 hover:text-purple-700 cursor-pointer underline">
                     browse
                   </label>
                 </p>
-                <p className="text-sm text-slate-400">
+                <p className="text-sm text-gray-500">
                   PDFs, Images, and CSVs will be processed dynamically.
                 </p>
               </div>
               <Button
                 onClick={() => fileInputRef.current?.click()}
                 disabled={isProcessing}
-                className="bg-cyan-400/90 hover:bg-cyan-400 text-slate-900 px-8 py-6 text-lg rounded-xl"
+                className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white px-8 py-6 text-lg rounded-xl shadow-md border-0"
               >
                 {isProcessing ? (
                   <>
-                    <div className="w-5 h-5 border-2 border-slate-900 border-t-transparent rounded-full animate-spin mr-2" />
+                    <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
                     Processing...
                   </>
                 ) : (
@@ -147,25 +147,25 @@ export function FileUploader({ onFileReady }: FileUploaderProps) {
                 animate={{ rotate: 360 }}
                 transition={{ duration: 2, repeat: Infinity, ease: 'linear' }}
               >
-                <FileSearch className="w-12 h-12 text-cyan-300" />
+                <FileSearch className="w-12 h-12 text-purple-600" />
               </motion.div>
-              <p className="text-cyan-200">Extracting statement data...</p>
+              <p className="text-purple-700 font-medium">Extracting statement data...</p>
             </div>
           ) : (
             <div className="space-y-6">
               <div className="flex items-center justify-center">
-                <div className="rounded-2xl border border-emerald-400/50 bg-emerald-400/10 p-6">
-                  <FileText className="h-10 w-10 text-emerald-300" />
+                <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-6 shadow-sm">
+                  <FileText className="h-10 w-10 text-emerald-600" />
                 </div>
               </div>
               <div className="space-y-2">
-                <p className="text-lg text-emerald-200">File ready for roasting.</p>
-                <p className="text-sm text-slate-400">{fileName}</p>
+                <p className="text-lg text-emerald-700 font-medium">File ready for roasting.</p>
+                <p className="text-sm text-gray-500">{fileName}</p>
               </div>
               <Button
                 onClick={handleClear}
                 variant="outline"
-                className="border-slate-600 text-slate-200 hover:border-slate-400"
+                className="border-gray-300 text-gray-700 hover:bg-gray-50"
               >
                 <X className="w-4 h-4 mr-2" />
                 Clear & Upload Another

@@ -186,7 +186,7 @@ class LifestyleRoaster:
             best_score = zs_result["scores"][0]
 
             # Layer 3: Confidence Scoring & ST Validation
-            if best_score < 0.75:
+            if best_score < 0.38:
                 return "Uncertain", best_score
 
             desc_embedding = self.model.encode([lowered], normalize_embeddings=False)[0]
@@ -196,7 +196,7 @@ class LifestyleRoaster:
             }
             
             # Prevent hallucination: ensure ST score for the elected category is reasonably high
-            if st_scores.get(best_label, 0) < 0.2:
+            if st_scores.get(best_label, 0) < 0.05:
                 return "Uncertain", best_score
 
             return best_label, best_score

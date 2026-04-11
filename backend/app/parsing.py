@@ -77,16 +77,17 @@ def parse_image_table_text(image) -> str:
         
     return "\n".join(text_lines)
 
-def heuristic_scan(text: str) -> List[Dict[str, str]]:
+def heuristic_scan(text: str) -> tuple[List[Dict[str, str]], str]:
     transactions = []
     lines = text.split('\n')
     
     # Matches simple dates: MM/DD/YYYY, YYYY-MM-DD or Month DD, YYYY
     date_pattern = r'(\d{1,2}[/-]\d{1,2}[/-]\d{2,4}|\b(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]* \d{1,2}(?:,)? \d{4})'
     # Matches amounts like $10.00, 10.00, $ 10.00, etc.
-    amount_pattern = r'\$?\s?(\d+(?:,\d{3})*\.\d{2})'
+    amount_pattern = r'(\$?)\s?(\d+(?:,\d{3})*\.\d{2})'
     
     current_date = "Unknown Date"
+    detected_usd = False
     
     for line in lines:
         line = line.strip()
@@ -103,23 +104,26 @@ def heuristic_scan(text: str) -> List[Dict[str, str]]:
         if amounts:
             # For bank statements with multiple columns (like Debit and Balance), the transaction amount is typically first.
             if len(amounts) >= 2:
-                amt_str = amounts[0].replace(',', '')
+                has_dollar, amt_str = amounts[0]
             else:
-                amt_str = amounts[-1].replace(',', '')
+                has_dollar, amt_str = amounts[-1]
                 
             try:
-                amt = float(amt_str)
+                amt = float(amt_str.replace(',', ''))
             except ValueError:
                 continue
                 
             if amt == 0:
                 continue
                 
+            if has_dollar == '$':
+                detected_usd = True
+                
             # Clean description: remove the date and amounts from the line
             desc = line
             if date_match:
                 desc = desc.replace(date_match.group(0), '')
-            for a in amounts:
+            for _, a in amounts:
                 desc = desc.replace(a, '')
             desc = desc.replace('$', '')
             
@@ -136,9 +140,10 @@ def heuristic_scan(text: str) -> List[Dict[str, str]]:
                 "amount": amt
             })
             
-    return transactions
+    currency = "USD" if detected_usd else "PHP"
+    return transactions, currency
 
-def parse_transactions(file_bytes: bytes, filename: str | None = None, content_type: str | None = None) -> List[Dict[str, str]]:
+def parse_transactions(file_bytes: bytes, filename: str | None = None, content_type: str | None = None) -> tuple[List[Dict[str, str]], str]:
     resolved_mime = content_type or "text/plain"
     ext = str(filename).lower().split('.')[-1] if filename else ""
     
@@ -199,9 +204,9 @@ def parse_transactions(file_bytes: bytes, filename: str | None = None, content_t
     if not text_content.strip():
          raise RuntimeError("No text could be extracted from the file. If it's an image, Tesseract OCR may be failing.")
          
-    parsed_transactions = heuristic_scan(text_content)
+    parsed_transactions, currency = heuristic_scan(text_content)
     
     if not parsed_transactions:
          raise RuntimeError("Extracted text contained no recognizable transactions.")
          
-    return parsed_transactions
+    return parsed_transactions, currency

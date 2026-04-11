@@ -11,6 +11,7 @@ CATEGORY_COLORS = {
     "Impulse-Buying": "#ff2d95",
     "Survival-Green": "#24f08c",
     "Subscription-Blue": "#2b8cff",
+    "Uncertain": "#94a3b8",
 }
 
 
@@ -68,8 +69,17 @@ def analyze_transactions(
     # 7-Step Pipeline: ingest -> clean -> embed/classify -> recurring detect -> aggregate -> roast
     processed: List[Dict[str, object]] = []
 
+    skip_keywords = [
+        "opening balance", "closing balance", "total deposit", "total withdrawal",
+        "paycheck", "direct deposit"
+    ]
+
     for tx in transactions:
         cleaned = roaster.clean_transaction(tx.get("description", ""))
+        
+        if any(skip in cleaned.lower() for skip in skip_keywords):
+            continue
+            
         category, similarity = roaster.classify_transaction(cleaned)
         processed.append(
             {
@@ -93,6 +103,7 @@ def analyze_transactions(
         "Impulse-Buying": {"amount": 0.0, "count": 0},
         "Survival-Green": {"amount": 0.0, "count": 0},
         "Subscription-Blue": {"amount": 0.0, "count": 0},
+        "Uncertain": {"amount": 0.0, "count": 0},
     }
 
     for tx in processed:
